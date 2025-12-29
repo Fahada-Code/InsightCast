@@ -37,3 +37,4 @@ Thumbs.db
 *.pkl
 *.h5
 *.db
+!backend/data/sample_data.csv
