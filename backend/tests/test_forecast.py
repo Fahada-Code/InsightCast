@@ -16,8 +16,10 @@ def test_forecast_upload_success(client, sample_csv):
     assert response.status_code == 200
     data = response.json()
     assert "data" in data
-    assert len(data["data"]) == 10
-    assert "timestamp" not in data["data"][0] # checking structure
+    assert "metrics" in data
+    assert "anomalies" in data
+    # We now return full history + forecast, so length > 10
+    assert len(data["data"]) > 10 
     assert "ds" in data["data"][0]
 
 def test_forecast_missing_file(client):

@@ -3,5 +3,6 @@ uvicorn
 pandas
 prophet
 python-multipart
+reportlab
 pytest
 httpx

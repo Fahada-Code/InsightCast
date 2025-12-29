@@ -47,8 +47,8 @@ async def get_forecast(
     df.to_csv(file_location, index=False)
 
     try:
-        # Generate forecast
-        forecast_df = generate_forecast(
+        # Generate analysis (Forecast + Anomalies + Metrics)
+        analysis_result = generate_forecast(
             file_path=file_location,
             days=days,
             seasonality_mode=seasonality_mode,
@@ -58,17 +58,29 @@ async def get_forecast(
             yearly_seasonality=yearly_seasonality
         )
         
-        # Return results
-        result = forecast_df.tail(days).to_dict(orient="records")
+        forecast_df = analysis_result["forecast"]
+        anomalies_df = analysis_result["anomalies"]
+        metrics = analysis_result["metrics"]
+        insights = analysis_result["insights"]
+        
+        # Prepare result for JSON response
+        # Full forecast series (History + Future)
+        forecast_data = forecast_df.to_dict(orient="records")
+        
+        # Anomalies list
+        anomalies_data = anomalies_df.to_dict(orient="records")
         
         return {
-            "message": f"Forecast generated successfully. Processed {len(df)} historical rows.",
+            "message": f"Analysis complete. Forecasted {days} days.",
             "row_count": len(df),
             "parameters": {
                 "seasonality_mode": seasonality_mode,
                 "growth": growth,
             },
-            "data": result
+            "metrics": metrics,
+            "anomalies": anomalies_data,
+            "insights": insights,
+            "data": forecast_data  # Returning full data now, not just tail
         }
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))

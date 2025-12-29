@@ -118,7 +118,13 @@ def main() -> None:
             print("Warning: There are still missing values after cleaning.")
             
         periods = 30
-        forecast = generate_forecast(df_clean, days=periods)
+        result = generate_forecast(df_clean, days=periods)
+        forecast = result["forecast"]
+        metrics = result["metrics"]
+        anomalies = result["anomalies"]
+        
+        print("Metrics:", metrics)
+        print(f"Anomalies found: {len(anomalies)}")
         
         print("Forecast (head):")
         print(forecast.head())
