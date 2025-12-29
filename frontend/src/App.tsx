@@ -1,20 +1,14 @@
 import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
-import {
-  ComposedChart,
-  Line,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Area,
-  Brush
-} from 'recharts';
+import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
+
 import './App.css';
+import { Controls } from './components/Controls';
+import { MetricsCards } from './components/MetricsCards';
+import { InsightsList } from './components/InsightsList';
+import { ForecastChart } from './components/ForecastChart';
 
 // Define types for forecast data
 interface ForecastDataPoint {
@@ -75,48 +69,23 @@ function App() {
 
     try {
       const response = await axios.post(`http://127.0.0.1:8000/forecast?days=${days}&seasonality_mode=${seasonalityMode}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      // API returns: { data: [...], anomalies: [...], metrics: {...}, insights: [...] }
       setForecastData(response.data.data);
       setAnomalies(response.data.anomalies);
       setMetrics(response.data.metrics);
       setInsights(response.data.insights || []);
 
     } catch (err: any) {
-      // Axios error handling
       const errorMessage = err.response?.data?.detail
-        ? JSON.stringify(err.response.data.detail) // detail can be object sometimes
+        ? JSON.stringify(err.response.data.detail)
         : "An error occurred fetching the forecast.";
-      setError(errorMessage.replace(/"/g, '')); // Clean up quotes
+      setError(errorMessage.replace(/"/g, ''));
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
-
-  // Merge anomalies into forecast data for easier plotting if needed, 
-  // or pass separate data arrays to ComposedChart. 
-  // Recharts ComposedChart works best with a single data array if sharing X-axis, 
-  // but we can also have multiple data sources if careful. 
-  // Easiest is to map anomalies onto the main data array or use a separate scatter.
-
-  // Strategy: ComposedChart with `forecastData`. 
-  // Anomalies usually are points on the same timeline.
-  // We need to make sure the `anomalies` are represented in the data passed to the chart, OR use a separate Scatter with its own data prop (if X axis matches).
-  // Safest: Use separate data prop for Scatter if supported, or map them.
-  // Recharts XAxis must match. 
-
-  // Let's attach anomaly info to the main forecastData item if ds matches.
-  const chartData = forecastData.map(point => {
-    const anomaly = anomalies.find(a => new Date(a.ds).getTime() === new Date(point.ds).getTime());
-    return {
-      ...point,
-      anomalyValue: anomaly ? anomaly.y : null, // The actual value that was anomalous
-    };
-  });
 
   const handleDownload = async () => {
     if (!file) return;
@@ -128,10 +97,9 @@ function App() {
       setLoading(true);
       const response = await axios.post(`http://127.0.0.1:8000/report?days=${days}&seasonality_mode=${seasonalityMode}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        responseType: 'blob', // Important for PDF download
+        responseType: 'blob',
       });
 
-      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -149,171 +117,57 @@ function App() {
   };
 
   return (
-    <div className="container">
-      <h1>Predictive Business Insights Platform</h1>
+    <div className="app-container">
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <h1>
+          <Sparkles style={{ marginRight: '10px', display: 'inline-block' }} />
+          Predictive Business Insights
+        </h1>
+      </motion.div>
 
-      <div className="controls">
-        <form onSubmit={handleSubmit}>
-          {/* Form inputs... */}
-          <div className="form-group">
-            <label>Upload CSV Data:</label>
-            <input type="file" accept=".csv,.txt" onChange={handleFileChange} />
-          </div>
+      <Controls
+        file={file}
+        days={days}
+        seasonalityMode={seasonalityMode}
+        loading={loading}
+        hasData={forecastData.length > 0}
+        onFileChange={handleFileChange}
+        onDaysChange={setDays}
+        onSeasonalityChange={setSeasonalityMode}
+        onSubmit={handleSubmit}
+        onDownload={handleDownload}
+      />
 
-          <div className="form-group">
-            <label>Forecast Horizon (Days):</label>
-            <input
-              type="number"
-              value={days}
-              onChange={(e) => setDays(parseInt(e.target.value))}
-              min="1"
-              max="365"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Seasonality Mode:</label>
-            <select value={seasonalityMode} onChange={(e) => setSeasonalityMode(e.target.value)}>
-              <option value="additive">Additive (Constant amplitude)</option>
-              <option value="multiplicative">Multiplicative (Changes with trend)</option>
-            </select>
-          </div>
-
-          <div className="button-group" style={{ display: 'flex', gap: '10px' }}>
-            <button type="submit" disabled={loading}>
-              {loading ? 'Processing...' : 'Run Forecast & Analysis'}
-            </button>
-
-            {forecastData.length > 0 && (
-              <button type="button" onClick={handleDownload} disabled={loading} style={{ backgroundColor: '#28a745' }}>
-                Download PDF Report
-              </button>
-            )}
-          </div>
-        </form>
-        {error && <p className="error">{error}</p>}
-      </div>
-
-      {metrics && (
-        <div className="metrics-container">
-          <div className="metric-card">
-            <h3>MAPE (Error %)</h3>
-            <div className="value">{metrics.MAPE}%</div>
-          </div>
-          <div className="metric-card">
-            <h3>RMSE (Error Units)</h3>
-            <div className="value">{metrics.RMSE}</div>
-          </div>
-          <div className="metric-card">
-            <h3>Forecast Confidence</h3>
-            <div className="value">{(100 - metrics.MAPE).toFixed(1)}%</div>
-          </div>
-        </div>
+      {error && (
+        <motion.div
+          className="error-banner"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {error}
+        </motion.div>
       )}
 
-      {insights.length > 0 && (
-        <div className="insights-section">
-          <h3>🧠 AI Insights</h3>
-          <ul>
-            {insights.map((insight, idx) => (
-              <li key={idx} dangerouslySetInnerHTML={{ __html: insight.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-            ))}
-          </ul>
-        </div>
-      )}
+      {metrics && <MetricsCards metrics={metrics} />}
+
+      {insights.length > 0 && <InsightsList insights={insights} />}
 
       {forecastData.length > 0 && (
-        <div className="chart-container">
-          <h2>Forecast & Anomaly Detection (Drag to Zoom)</h2>
-          <ResponsiveContainer width="100%" height={450}>
-            <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="ds"
-                tickFormatter={(tick) => new Date(tick).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-              />
-              <YAxis />
-              <Tooltip
-                labelFormatter={(label) => new Date(label).toDateString()}
-              />
-              <Legend />
-
-              {/* Uncertainty Band - approximated by area between upper/lower? 
-                  Recharts doesn't handle "band" easily without custom shapes or stacked areas.
-                  We'll just plot lines for now for simplicity or use Area for the whole range if data is structured right.
-              */}
-              <Area
-                type="monotone"
-                dataKey="yhat_upper"
-                stroke="none"
-                fill="#82ca9d"
-                fillOpacity={0.2}
-                isAnimationActive={true}
-                animationDuration={500}
-              />
-
-              <Line
-                type="monotone"
-                dataKey="yhat"
-                stroke="#8884d8"
-                name="Forecast"
-                dot={false}
-                strokeWidth={2}
-                isAnimationActive={true}
-                animationDuration={500}
-              />
-              <Line
-                type="monotone"
-                dataKey="yhat_upper"
-                stroke="#82ca9d"
-                name="Upper/Lower Bound"
-                strokeDasharray="3 3"
-                dot={false}
-                isAnimationActive={true}
-                animationDuration={500}
-              />
-              <Line
-                type="monotone"
-                dataKey="yhat_lower"
-                stroke="#82ca9d"
-                name=""
-                strokeDasharray="3 3"
-                dot={false}
-                isAnimationActive={true}
-                animationDuration={500}
-              />
-
-              <Scatter
-                dataKey="anomalyValue"
-                name="Anomaly"
-                fill="red"
-                shape="circle"
-                isAnimationActive={true}
-                animationDuration={500}
-              />
-
-              <Brush dataKey="ds" height={30} stroke="#8884d8" />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {anomalies.length > 0 && (
-        <div className="anomalies-section">
-          <h3>⚠️ Detected Anomalies</h3>
-          <p>Found {anomalies.length} data points that deviate significantly from the expected values.</p>
-          <ul>
-            {anomalies.slice(0, 5).map((a, i) => (
-              <li key={i}>
-                {new Date(a.ds).toDateString()}: Actual <strong>{a.y}</strong> vs Expected <strong>{a.yhat.toFixed(2)}</strong>
-              </li>
-            ))}
-            {anomalies.length > 5 && <li>...and {anomalies.length - 5} more.</li>}
-          </ul>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <ForecastChart data={forecastData} anomalies={anomalies} />
+        </motion.div>
       )}
     </div>
   );
 }
 
 export default App;
+
