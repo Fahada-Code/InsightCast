@@ -28,7 +28,7 @@ def test_forecast_missing_file(client):
 def test_forecast_invalid_columns(client, setup_data_dir):
     filename = "data/invalid.csv"
     with open(filename, "w") as f:
-        f.write("date,value\n2023-01-01,100") # Wrong headers
+        f.write("unknown_col\n100") # Single column, definitely no date
     
     with open(filename, "rb") as f:
         response = client.post(
@@ -36,7 +36,8 @@ def test_forecast_invalid_columns(client, setup_data_dir):
             files={"file": ("invalid.csv", f, "text/csv")}
         )
     assert response.status_code == 400
-    assert "must contain 'ds'" in response.json()["detail"]
+    # Our smart detection gives a specific error when date col isn't found
+    assert "Could not detect a date column" in response.json()["detail"]
 
 def test_advanced_parameters(client, sample_csv):
     with open(sample_csv, "rb") as f:

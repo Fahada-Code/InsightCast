@@ -1,74 +1,14 @@
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
-from app.utils.forecasting import generate_forecast
+from app.utils.forecasting import generate_forecast, normalize_columns
 import os
-import shutil
-import pandas as pd
 import io
-from typing import Optional
+import pandas as pd
 
 router = APIRouter()
 
 # Data directory path
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
-
-def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Standardize column names to 'ds' and 'y' using smart detection.
-    """
-    # 1. Detect Date Column
-    date_col = None
-    if 'ds' in df.columns:
-        date_col = 'ds'
-    else:
-        # Case-insensitive search for 'date' or 'ds' or 'timestamp'
-        for col in df.columns:
-            if col.lower() in ['date', 'ds', 'timestamp', 'time']:
-                date_col = col
-                break
-    
-    if not date_col:
-        raise ValueError("Could not detect a date column (looking for 'ds', 'date', 'timestamp').")
-
-    # 2. Detect Target Column
-    target_col = None
-    if 'y' in df.columns:
-        target_col = 'y'
-    else:
-        # Potential targets (excluding date column)
-        potential_targets = [c for c in df.columns if c != date_col]
-        
-        # Check for explicit 'y' match first
-        for col in potential_targets:
-            if col.lower() == 'y':
-                target_col = col
-                break
-        
-        if not target_col:
-            # Check for generic value names
-            common_names = ['value', 'sales', 'revenue', 'quantity', 'amount', 'close', 'price']
-            for col in potential_targets:
-                if col.lower() in common_names:
-                    target_col = col
-                    break
-            
-            # If still not found, pick the first numeric column
-            if not target_col:
-                numeric_cols = df[potential_targets].select_dtypes(include=['number', 'float', 'int']).columns
-                if len(numeric_cols) > 0:
-                    target_col = numeric_cols[0]
-
-    if not target_col:
-        raise ValueError("Could not detect a numeric target column. Please ensure one exists.")
-
-    # 3. Rename and Filter
-    df = df.rename(columns={date_col: 'ds', target_col: 'y'})
-    
-    # Ensure y is numeric
-    df['y'] = pd.to_numeric(df['y'], errors='coerce')
-    df = df.dropna(subset=['y'])
-    
-    return df[['ds', 'y']]
 
 @router.post("/forecast", tags=["Forecasting"])
 async def get_forecast(
@@ -103,8 +43,6 @@ async def get_forecast(
          raise HTTPException(status_code=400, detail=str(e))
 
     # Save the standardized file
-    # We save it so the utility can read it (or we could modify utility to accept DF)
-    # Keeping the utility expecting a path for now to minimize refactoring risk elsewhere
     file_location = os.path.join(DATA_DIR, f"clean_{file.filename}")
     df.to_csv(file_location, index=False)
 
