@@ -181,10 +181,9 @@ button:disabled {
 }
 
 .insight-item {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
+  border-left: 3px solid var(--primary-color);
+  padding: 0.5rem 0 0.5rem 1rem;
+  margin-bottom: 1rem;
   line-height: 1.6;
 }
 

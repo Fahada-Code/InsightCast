@@ -206,21 +206,40 @@ def generate_insights(forecast: pd.DataFrame, anomalies: pd.DataFrame, history: 
     future_val = forecast['yhat'].iloc[-1]
     trend_pct = ((future_val - current_val) / current_val) * 100
     
-    if trend_pct > 5:
-        insights.append(f"📈 **Strong Growth**: Predicted to increase by {trend_pct:.1f}% over the forecast period.")
-    elif trend_pct < -5:
-        insights.append(f"📉 **Decline Predicted**: Expected to decrease by {abs(trend_pct):.1f}%.")
-    else:
-        insights.append(f"➡️ **Stable Trend**: Values expected to remain relatively stable ({trend_pct:.1f}% change).")
+    # Determine the overall direction
+    direction = "growth" if trend_pct > 0 else "decline"
+    intensity = "Significant" if abs(trend_pct) > 10 else "Moderate" if abs(trend_pct) > 3 else "Minimal"
+    
+    insights.append(f"📊 **{intensity} {direction.capitalize()}**: Expect a {abs(trend_pct):.1f}% {direction} in values over the next forecast cycle.")
+    
+    # 2. Key Milestones (Peaks and Troughs)
+    future_forecast = forecast[forecast['ds'] > history['ds'].max()]
+    if not future_forecast.empty:
+        peak_idx = future_forecast['yhat'].idxmax()
+        trough_idx = future_forecast['yhat'].idxmin()
         
-    # 2. Anomaly Summary
+        peak_time = future_forecast.loc[peak_idx, 'ds'].strftime('%Y-%m-%d')
+        peak_val = future_forecast.loc[peak_idx, 'yhat']
+        
+        insights.append(f"🚀 **Forecast Peak**: The model projects a high of **{peak_val:.2f}** around **{peak_time}**.")
+
+    # 3. Anomaly & Volatility Summary
     if not anomalies.empty:
-        insights.append(f"⚠️ **Volatility Detected**: Found {len(anomalies)} anomalies in regular historical behavior.")
-        recent_anomalies = anomalies[anomalies['ds'] > history['ds'].max() - pd.Timedelta(days=30)]
+        total_anomalies = len(anomalies)
+        recent_cutoff = history['ds'].max() - pd.Timedelta(days=30)
+        recent_anomalies = anomalies[anomalies['ds'] > recent_cutoff]
+        
         if not recent_anomalies.empty:
-            insights.append("❗ **Recent Instability**: Anomalies detected in the last 30 days of data.")
+            insights.append(f"⚠️ **Recent Volatility**: Detected **{len(recent_anomalies)}** unexpected fluctuations in the last 30 days, suggesting higher short-term risk.")
+        else:
+            insights.append(f"🛡️ **Historical Stability**: Despite **{total_anomalies}** lifetime anomalies, recent data shows consistent patterns.")
             
-    # 3. Seasonality (Simple check logic - real check would need model component inspection)
-    # We can assume seasonality if user selected it or just give generic advice
+    # 4. Confidence Interval
+    last_point = forecast.iloc[-1]
+    spread = (last_point['yhat_upper'] - last_point['yhat_lower']) / last_point['yhat'] * 100
+    if spread < 15:
+        insights.append("✅ **High Confidence**: The model shows high convergence with a narrow prediction interval.")
+    else:
+        insights.append("🔍 **Variable Forecast**: Noted a wider uncertainty margin, suggesting potential external market influence.")
     
     return insights
