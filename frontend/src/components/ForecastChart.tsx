@@ -19,8 +19,10 @@ interface ForecastChartProps {
 }
 
 export function ForecastChart({ data, anomalies }: ForecastChartProps) {
-    // Merge anomalies into chart data
-    const chartData = data.map(point => {
+    // Sort and Merge anomalies into chart data
+    const sortedData = [...data].sort((a, b) => new Date(a.ds).getTime() - new Date(b.ds).getTime());
+
+    const chartData = sortedData.map(point => {
         const anomaly = anomalies.find(a => new Date(a.ds).getTime() === new Date(point.ds).getTime());
         return {
             ...point,
@@ -61,15 +63,22 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                             dataKey="ds"
                             tickFormatter={(tick) => new Date(tick).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             stroke="#64748b"
+                            minTickGap={30}
                         />
                         <YAxis stroke="#64748b" tickFormatter={(val) => typeof val === 'number' ? val.toLocaleString(undefined, { maximumFractionDigits: 1 }) : val} />
                         <Tooltip
                             contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#0f172a', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                             labelFormatter={(label) => new Date(label).toDateString()}
-                            // Show descriptive names including severity
                             formatter={(value: any, name: string | any) => {
                                 if (typeof value !== 'number') return [value, name];
-                                return [value.toFixed(2), name];
+                                // Improve labels based on dataKey name
+                                const labelMap: Record<string, string> = {
+                                    'yhat': 'Forecast',
+                                    'yhat_upper': 'Upper Bound',
+                                    'yhat_lower': 'Lower Bound',
+                                    'anomalyValue': 'Actual (Anomaly)'
+                                };
+                                return [value.toFixed(2), labelMap[name] || name];
                             }}
                         />
                         <Legend verticalAlign="top" height={36} wrapperStyle={{ paddingTop: '10px' }} />
@@ -79,15 +88,16 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                             dataKey="yhat_upper"
                             stroke="none"
                             fill="#94a3b8"
-                            fillOpacity={0.15}
-                            name="Forecast Interval (Upper)"
+                            fillOpacity={0.2}
+                            name="yhat_upper"
+                            legendType="none"
                         />
 
                         <Line
                             type="monotone"
                             dataKey="yhat"
                             stroke="#0ea5e9"
-                            name="Primary Forecast"
+                            name="yhat"
                             dot={false}
                             strokeWidth={3}
                             activeDot={{ r: 8 }}
@@ -96,43 +106,43 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         <Line
                             type="monotone"
                             dataKey="yhat_upper"
-                            stroke="#cbd5e1"
-                            name="Upper Bound"
+                            stroke="#475569"
+                            name="yhat_upper"
                             strokeDasharray="5 5"
                             dot={false}
-                            strokeWidth={1}
+                            strokeWidth={1.5}
                         />
                         <Line
                             type="monotone"
                             dataKey="yhat_lower"
-                            stroke="#cbd5e1"
-                            name="Lower Bound"
+                            stroke="#475569"
+                            name="yhat_lower"
                             strokeDasharray="5 5"
                             dot={false}
-                            strokeWidth={1}
+                            strokeWidth={1.5}
                         />
 
                         <Scatter
                             data={anomalySeries}
                             dataKey="anomalyValue"
-                            name="Detected Anomaly"
+                            name="anomalyValue"
+                            fill="#ff0000"
                             legendType="circle"
                             shape={(props: any) => {
                                 const { cx, cy, payload } = props;
-                                if (typeof cx !== 'number' || typeof cy !== 'number') return <path d="" />; // Empty path instead of null
+                                if (typeof cx !== 'number' || typeof cy !== 'number') return <path d="" />;
 
                                 const severity = payload.severity_level;
 
-                                // Enhanced Sizing & Colors
-                                let fill = "#ff0000"; // Critical (Deep Red)
-                                let size = 10;
+                                let fill = "#ff0000"; // Critical
+                                let size = 12; // Slightly bigger as requested
 
                                 if (severity === 'Medium') {
-                                    fill = "#f97316"; // Significant (Orange)
-                                    size = 7;
+                                    fill = "#f97316"; // Significant
+                                    size = 8;
                                 } else if (severity === 'Low') {
-                                    fill = "#f59e0b"; // Notable (Amber)
-                                    size = 5;
+                                    fill = "#f59e0b"; // Notable
+                                    size = 6;
                                 }
 
                                 return (

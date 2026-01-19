@@ -176,7 +176,8 @@ def generate_forecast(
         weekly_seasonality=weekly_seasonality,
         yearly_seasonality=yearly_seasonality,
         holidays=holidays,
-        uncertainty_samples=100 
+        interval_width=0.95, # Increased for more conservative detection
+        uncertainty_samples=300 # More samples for more stable intervals
     )
     
     m.fit(df)
