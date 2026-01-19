@@ -29,6 +29,15 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
         };
     });
 
+    // Prepare dedicated anomaly series to avoid drawing at y=0/null
+    const anomalySeries = chartData
+        .filter(d => d.anomalyValue !== null)
+        .map(d => ({
+            ds: d.ds,
+            anomalyValue: d.anomalyValue,
+            severity_level: d.severity_level
+        }));
+
     return (
         <div className="glass-panel chart-panel">
             <div className="panel-header">
@@ -57,7 +66,11 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         <Tooltip
                             contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#0f172a', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                             labelFormatter={(label) => new Date(label).toDateString()}
-                            formatter={(value: any) => typeof value === 'number' ? [value.toFixed(2), ''] : ['', '']}
+                            // Show descriptive names including severity
+                            formatter={(value: any, name: string | any) => {
+                                if (typeof value !== 'number') return [value, name];
+                                return [value.toFixed(2), name];
+                            }}
                         />
                         <Legend verticalAlign="top" height={36} wrapperStyle={{ paddingTop: '10px' }} />
 
@@ -67,7 +80,7 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                             stroke="none"
                             fill="#94a3b8"
                             fillOpacity={0.15}
-                            name="Confidence Interval"
+                            name="Forecast Interval (Upper)"
                         />
 
                         <Line
@@ -83,41 +96,43 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                         <Line
                             type="monotone"
                             dataKey="yhat_upper"
-                            stroke="#94a3b8"
-                            name="Upper/Lower Bound"
+                            stroke="#cbd5e1"
+                            name="Upper Bound"
                             strokeDasharray="5 5"
                             dot={false}
                             strokeWidth={1}
-                            legendType='none'
                         />
                         <Line
                             type="monotone"
                             dataKey="yhat_lower"
-                            stroke="#94a3b8"
+                            stroke="#cbd5e1"
+                            name="Lower Bound"
                             strokeDasharray="5 5"
                             dot={false}
                             strokeWidth={1}
-                            legendType='none'
                         />
 
                         <Scatter
+                            data={anomalySeries}
                             dataKey="anomalyValue"
-                            name="Critical Anomaly"
-                            line={false}
+                            name="Detected Anomaly"
+                            legendType="circle"
                             shape={(props: any) => {
                                 const { cx, cy, payload } = props;
+                                if (typeof cx !== 'number' || typeof cy !== 'number') return <path d="" />; // Empty path instead of null
+
                                 const severity = payload.severity_level;
 
-                                // Specific colors and smaller sizes
-                                let fill = "#ef4444"; // High (Red)
-                                let size = 8;
+                                // Enhanced Sizing & Colors
+                                let fill = "#ff0000"; // Critical (Deep Red)
+                                let size = 10;
 
                                 if (severity === 'Medium') {
-                                    fill = "#f97316"; // Orange
-                                    size = 5;
+                                    fill = "#f97316"; // Significant (Orange)
+                                    size = 7;
                                 } else if (severity === 'Low') {
-                                    fill = "#f59e0b"; // Amber
-                                    size = 3;
+                                    fill = "#f59e0b"; // Notable (Amber)
+                                    size = 5;
                                 }
 
                                 return (
@@ -127,7 +142,7 @@ export function ForecastChart({ data, anomalies }: ForecastChartProps) {
                                         r={size}
                                         fill={fill}
                                         stroke="#ffffff"
-                                        strokeWidth={1.5}
+                                        strokeWidth={2}
                                     />
                                 );
                             }}

@@ -143,6 +143,10 @@ async def get_forecast_report(
         )
 
     except ValueError as ve:
+        print(f"REPORTING VALUE ERROR: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
+        import traceback
+        print(f"REPORTING CRITICAL ERROR: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Reporting error: {str(e)}")
