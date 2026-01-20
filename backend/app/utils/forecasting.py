@@ -158,9 +158,10 @@ def generate_forecast(
          except ValueError:
              raise ValueError("Input dataframe must contain 'ds' and 'y' columns.")
 
-    # Convert ds to datetime
+    # Convert ds to datetime and ensure consistency
     try:
         df['ds'] = pd.to_datetime(df['ds'])
+        print(f"DEBUG: Processing {len(df)} data points from {df['ds'].min()} to {df['ds'].max()}")
     except Exception:
         raise ValueError("Could not parse 'ds' column as dates.")
         
