@@ -30,11 +30,10 @@ def generate_pdf_report(
     story.append(Paragraph("Data-driven forecasts and performance insights", styles['ExecutiveSub']))
     story.append(Spacer(1, 18))
 
-    # 1. Performance Overview (Metrics)
+    # Performance metrics section
     story.append(Paragraph("Model Performance Overview", styles['Heading2']))
     story.append(Spacer(1, 6))
     
-    # Confidence metrics mapping
     confidence = (100 - metrics.get("MAPE", 0))
     metric_data = [
         ["Core Metric", "Analysis Value", "Status"],

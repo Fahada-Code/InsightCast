@@ -212,7 +212,7 @@ def generate_insights(forecast: pd.DataFrame, anomalies: pd.DataFrame, history: 
     insights = []
     recommendations = []
     
-    # 1. Trend Analysis
+    # Analyze the forecast trend
     current_val = history['y'].iloc[-1]
     future_val = forecast['yhat'].iloc[-1]
     trend_pct = ((future_val - current_val) / current_val) * 100
@@ -231,7 +231,7 @@ def generate_insights(forecast: pd.DataFrame, anomalies: pd.DataFrame, history: 
     else:
         recommendations.append("<b>Cost Optimization</b>: Identify potential operational efficiencies to offset the projected decline.")
 
-    # 2. Key Milestones (Peaks and Troughs)
+    # Look for significant peaks in the forecast
     future_forecast = forecast[forecast['ds'] > history['ds'].max()]
     if not future_forecast.empty:
         peak_idx = future_forecast['yhat'].idxmax()
@@ -241,7 +241,7 @@ def generate_insights(forecast: pd.DataFrame, anomalies: pd.DataFrame, history: 
         insights.append(f"<b>Forecast Peak</b>: The model projects a high of <b>{peak_val:.2f}</b> around <b>{peak_time}</b>.")
         recommendations.append(f"<b>Peak Readiness</b>: Plan marketing or maintenance activities around the <b>{peak_time}</b> peak.")
 
-    # 3. Anomaly & Volatility Summary
+    # Categorize detected anomalies
     if not anomalies.empty:
         high_severity = anomalies[anomalies['severity_level'] == 'High']
         if not high_severity.empty:
@@ -253,7 +253,7 @@ def generate_insights(forecast: pd.DataFrame, anomalies: pd.DataFrame, history: 
     else:
         insights.append("<b>Operational Stability</b>: No significant anomalies detected in recent historical data.")
 
-    # 4. Confidence Interval
+    # Check prediction confidence
     last_point = forecast.iloc[-1]
     spread = (last_point['yhat_upper'] - last_point['yhat_lower']) / last_point['yhat'] * 100
     if spread < 15:

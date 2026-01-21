@@ -5,7 +5,13 @@
   <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
   <img src="https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" alt="Vite">
+  <br>
+  <img src="https://img.shields.io/badge/Pandas-150458?logo=pandas&logoColor=white" alt="Pandas">
+  <img src="https://img.shields.io/badge/Recharts-FF6384?logo=chartdotjs&logoColor=white" alt="Recharts">
+  <img src="https://img.shields.io/badge/Framer-0055FF?logo=framer&logoColor=white" alt="Framer Motion">
+  <img src="https://img.shields.io/badge/Prophet-4285F4?logo=meta&logoColor=white" alt="Prophet">
 </p>
 
 A time-series forecasting platform that predicts future trends and catches unusual patterns in your data. Upload your CSV, get instant predictions, and spot problems before they happen.
