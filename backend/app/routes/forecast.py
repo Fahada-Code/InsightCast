@@ -24,26 +24,21 @@ async def get_forecast(
     """
     Generate a forecast using the Prophet model based on uploaded CSV data.
     """
-    # Read file content
     contents = await file.read()
     
     try:
-        # Try reading as CSV
         df = pd.read_csv(io.BytesIO(contents))
     except Exception:
-        # Try with different encoding if default fails
         try:
             df = pd.read_csv(io.BytesIO(contents), encoding='latin1')
         except Exception as e:
             raise HTTPException(status_code=400, detail="Invalid CSV file. Could not parse.")
 
-    # Normalize columns
     try:
         df = normalize_columns(df)
     except ValueError as e:
          raise HTTPException(status_code=400, detail=str(e))
 
-    # Save the standardized file
     file_location = os.path.join(DATA_DIR, f"clean_{file.filename}")
     df.to_csv(file_location, index=False)
 
@@ -64,7 +59,6 @@ async def get_forecast(
         metrics = analysis_result["metrics"]
         insights_data = analysis_result["insights"] # Structured dict
         
-        # Prepare result for JSON response
         forecast_data = forecast_df.to_dict(orient="records")
         anomalies_data = anomalies_df.to_dict(orient="records")
         
@@ -99,7 +93,6 @@ async def get_forecast_report(
     """
     Generates a PDF report for the forecast.
     """
-    # 1. Save upload to temp file
     os.makedirs("data", exist_ok=True)
     file_location = os.path.join("data", file.filename)
     with open(file_location, "wb") as f:

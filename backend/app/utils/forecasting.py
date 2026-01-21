@@ -8,12 +8,11 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Standardize column names to 'ds' and 'y' using smart detection.
     """
-    # 1. Detect Date Column
+    # Look for date column
     date_col = None
     if 'ds' in df.columns:
         date_col = 'ds'
     else:
-        # Case-insensitive search for 'date' or 'ds' or 'timestamp'
         for col in df.columns:
             if col.lower() in ['date', 'ds', 'timestamp', 'time']:
                 date_col = col
@@ -22,12 +21,11 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     if not date_col:
         raise ValueError("Could not detect a date column (looking for 'ds', 'date', 'timestamp').")
 
-    # 2. Detect Target Column
+    # Find the target value column
     target_col = None
     if 'y' in df.columns:
         target_col = 'y'
     else:
-        # Potential targets (excluding date column)
         potential_targets = [c for c in df.columns if c != date_col]
         
         # Check for explicit 'y' match first
@@ -53,7 +51,7 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     if not target_col:
         raise ValueError("Could not detect a numeric target column. Please ensure one exists.")
 
-    # 3. Rename and Filter
+    # Rename and clean up
     df = df.rename(columns={date_col: 'ds', target_col: 'y'})
     
     # Ensure y is numeric
@@ -63,9 +61,6 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df[['ds', 'y']]
 
 def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
-    """
-    Calculate performance metrics: MAE, RMSE, MAPE.
-    """
     # Remove NaNs if any
     mask = ~np.isnan(y_true) & ~np.isnan(y_pred)
     y_true = y_true[mask]
@@ -90,11 +85,7 @@ def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float
     }
 
 def detect_anomalies(forecast: pd.DataFrame, actuals: pd.DataFrame) -> pd.DataFrame:
-    """
-    Identify anomalies where actual values fall outside the uncertainty intervals.
-    Categorizes them by High, Medium, and Low severity.
-    """
-    # Merge forecast with actuals on 'ds'
+    # Merge forecast with actuals
     merged = pd.merge(actuals, forecast[['ds', 'yhat_lower', 'yhat_upper', 'yhat']], on='ds', how='inner')
     
     # Identify anomalies
